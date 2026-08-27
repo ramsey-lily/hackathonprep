@@ -91,7 +91,9 @@ export default function OfferEvaluation({ requests, selectedRequestId, onOfferAc
               <div key={offer.id} className={`offer-card ${isSelected ? 'selected-card' : ''}`}>
                 <div className="offer-card-header">
                   <div>
-                    <span className="offer-farmer-id">Farmer #{offer.farmer_id}</span>
+                    <span className="offer-farmer-id">
+                      {offer.farmer?.name || `Farmer #${offer.farmer?.id || 'Unknown'}`}
+                      </span>
                     <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
                       Offer ID: #{offer.id}
                     </div>
