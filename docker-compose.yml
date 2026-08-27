@@ -1,0 +1,38 @@
+version: "3.9"
+services:
+db:
+image: postgres:15
+environment:
+POSTGRES_DB: kasarani_foodlink
+POSTGRES_USER: admin
+POSTGRES_PASSWORD: admin
+ports:
+- "5432:5432"
+volumes:
+- db_data:/var/lib/postgresql/data
+
+backend:
+build: ./backend
+ports:
+- "5000:5000"
+environment:
+- DATABASE_URL=postgresql://admin:admin@db:5432/kasarani_foodlink
+depends_on:
+- db
+
+frontend-school:
+build: ./frontend-school
+ports:
+- "3000:3000"
+depends_on:
+- backend
+
+frontend-farmer:
+build: ./frontend-farmer
+ports:
+- "3001:3000"
+depends_on:
+- backend
+
+volumes:
+db_data:
