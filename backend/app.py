@@ -6,7 +6,10 @@ from routes.farmers import farmers_bp
 from routes.requests import requests_bp
 from routes.offers import offers_bp
 from routes.orders import orders_bp
+from routes.payments import payments
+from dotenv import load_dotenv
 
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -18,6 +21,7 @@ app.register_blueprint(farmers_bp)
 app.register_blueprint(requests_bp)
 app.register_blueprint(offers_bp)
 app.register_blueprint(orders_bp)
+app.register_blueprint(payments)
 
 
 @app.route("/")
