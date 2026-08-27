@@ -70,13 +70,46 @@ def get_request_offers(request_id):
     response = (
         supabase
         .table("offers")
-        .select("*")
+        .select("""
+            id,
+            quantity,
+            price,
+            status,
+            farmers (
+                id,
+                name,
+                phone,
+                location
+            )
+        """)
         .eq("request_id", request_id)
         .execute()
     )
 
-    return jsonify(response.data), 200
+    offers_data = []
 
+    for item in response.data:
+
+        farmer = item.pop("farmers", None)
+
+        quantity = float(item["quantity"])
+        price = float(item["price"])
+
+        offers_data.append({
+            "id": item["id"],
+            "farmer": {
+                "id": farmer["id"],
+                "name": farmer["name"],
+                "phone": farmer["phone"],
+                "location": farmer["location"]
+            } if farmer else None,
+            "quantity": quantity,
+            "price": price,
+            "total_amount": quantity * price,
+            "status": item["status"]
+        })
+
+    return jsonify(offers_data), 200
 
 # Select a farmer's offer
 @offers_bp.route("/offers/<int:offer_id>/select", methods=["PATCH"])
