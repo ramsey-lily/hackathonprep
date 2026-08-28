@@ -1,119 +1,96 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import './App.css';
 
 function App() {
+  const [foodRequests, setFoodRequests] = useState([]);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [offerSubmitted, setOfferSubmitted] = useState(false);
-  const [myOffers, setMyOffers] = useState([]);
-  const [showOffers, setShowOffers] = useState(false);
 
   const [price, setPrice] = useState('');
   const [quantity, setQuantity] = useState('');
   const [deliveryDate, setDeliveryDate] = useState('');
 
-  const foodRequests = [
-    {
-      id: 1,
-      food: 'Beans',
-      quantity: '100 kg',
-      deadline: '30 August 2026',
-    },
-    {
-      id: 2,
-      food: 'Maize',
-      quantity: '200 kg',
-      deadline: '2 September 2026',
-    },
-    {
-      id: 3,
-      food: 'Rice',
-      quantity: '150 kg',
-      deadline: '5 September 2026',
-    },
-  ];
+  useEffect(() => {
+    fetch('http://127.0.0.1:5000/requests?status=open')
+      .then((response) => response.json())
+      .then((data) => {
+        setFoodRequests(data);
+      })
+      .catch((error) => {
+        console.error('Error loading requests:', error);
+      });
+  }, []);
 
   const submitOffer = () => {
-    const newOffer = {
-      food: selectedRequest.food,
-      quantity: quantity,
-      price: price,
-      deliveryDate: deliveryDate,
-      status: 'Pending',
-    };
+    if (!price || !quantity) {
+      alert('Please enter price and quantity.');
+      return;
+    }
 
-    setMyOffers([...myOffers, newOffer]);
-    setOfferSubmitted(true);
+    fetch(
+      `http://127.0.0.1:5000/requests/${selectedRequest.id}/offers`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          farmer_id: 1,
+          quantity: Number(quantity),
+          price: Number(price),
+        }),
+      }
+    )
+      .then((response) => response.json())
+      .then(() => {
+        setOfferSubmitted(true);
+      })
+      .catch((error) => {
+        console.error('Error submitting offer:', error);
+        alert('Could not submit offer.');
+      });
   };
 
   return (
     <div className="App">
+      <h1>🌾 Farmer Dashboard</h1>
 
-      <h1> Farmer Dashboard</h1>
-
-      {!selectedRequest && !showOffers && (
+      {!selectedRequest && (
         <>
           <p>
             Welcome to the Kasarani School Food Supply System!
           </p>
 
-          <button onClick={() => setShowOffers(true)}>
-             My Offers
-          </button>
-
           <h2>Available Food Requests</h2>
 
-          {foodRequests.map((request) => (
-            <div key={request.id}>
-              <h3>{request.food}</h3>
-
-              <p>Quantity: {request.quantity}</p>
-
-              <p>Deadline: {request.deadline}</p>
-
-              <button
-                onClick={() => setSelectedRequest(request)}
-              >
-                View Request
-              </button>
-            </div>
-          ))}
-        </>
-      )}
-
-      {showOffers && (
-        <div>
-          <h2> My Offers</h2>
-
-          {myOffers.length === 0 ? (
-            <p>You haven't submitted any offers yet.</p>
+          {foodRequests.length === 0 ? (
+            <p>No open food requests available.</p>
           ) : (
-            myOffers.map((offer, index) => (
-              <div key={index}>
-                <h3>{offer.food}</h3>
+            foodRequests.map((request) => (
+              <div key={request.id}>
+                <h3>{request.food_item}</h3>
 
                 <p>
-                  Quantity: {offer.quantity}
+                  Quantity: {request.quantity} {request.unit}
                 </p>
 
                 <p>
-                  Price: KSh {offer.price} per kg
+                  Budget: KSh {request.budget}
                 </p>
 
                 <p>
-                  Delivery Date: {offer.deliveryDate}
+                  Delivery Date: {request.delivery_date}
                 </p>
 
-                <p>
-                  Status: {offer.status} ⏳
-                </p>
+                <button
+                  onClick={() => setSelectedRequest(request)}
+                >
+                  View Request
+                </button>
               </div>
             ))
           )}
-
-          <button onClick={() => setShowOffers(false)}>
-            ← Back to Dashboard
-          </button>
-        </div>
+        </>
       )}
 
       {selectedRequest && (
@@ -125,17 +102,21 @@ function App() {
           </p>
 
           <p>
-            <strong>Food:</strong> {selectedRequest.food}
+            <strong>Food:</strong> {selectedRequest.food_item}
           </p>
 
           <p>
-            <strong>Requested Quantity:</strong>{' '}
-            {selectedRequest.quantity}
+            <strong>Quantity:</strong> {selectedRequest.quantity}{' '}
+            {selectedRequest.unit}
           </p>
 
           <p>
-            <strong>Deadline:</strong>{' '}
-            {selectedRequest.deadline}
+            <strong>Budget:</strong> KSh {selectedRequest.budget}
+          </p>
+
+          <p>
+            <strong>Delivery Date:</strong>{' '}
+            {selectedRequest.delivery_date}
           </p>
 
           {!offerSubmitted ? (
@@ -155,7 +136,7 @@ function App() {
               <br />
               <br />
 
-              <label>Available quantity:</label>
+              <label>Quantity:</label>
               <br />
 
               <input
@@ -168,28 +149,12 @@ function App() {
               <br />
               <br />
 
-              <label>Delivery date:</label>
-              <br />
-
-              <input
-                type="date"
-                value={deliveryDate}
-                onChange={(e) =>
-                  setDeliveryDate(e.target.value)
-                }
-              />
-
-              <br />
-              <br />
-
               <button onClick={submitOffer}>
                 Submit Offer
               </button>
             </div>
           ) : (
-            <p>
-              ✅ Your offer has been submitted successfully!
-            </p>
+            <p>✅ Your offer was submitted successfully!</p>
           )}
 
           <br />
@@ -207,7 +172,6 @@ function App() {
           </button>
         </div>
       )}
-
     </div>
   );
 }
