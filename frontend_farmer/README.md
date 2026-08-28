@@ -1,70 +1,119 @@
-# Getting Started with Create React App
+# Kasarani Farmer Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Farmer-facing React app for the School–Farmer Food Supply Management System.
+Talks only to the Flask backend — never to Supabase directly.
 
-## Available Scripts
+## 1. Where to put this
 
-In the project directory, you can run:
+Drop this `farmer-frontend/` folder alongside your other project folders,
+e.g.:
 
-### `npm start`
+```
+kasarani-foodlink/
+├── backend/                 (Flask API)
+├── frontend-school/         (existing school admin frontend)
+├── frontend-farmer/         ← this folder goes here
+└── docker-compose.yml
+```
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+If you already have a `frontend-farmer` folder from the earlier prototype,
+back it up, then copy these files in:
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+```
+frontend-farmer/
+├── public/
+│   └── index.html
+├── src/
+│   ├── api/
+│   │   └── client.js
+│   ├── components/
+│   │   ├── Dashboard.jsx
+│   │   ├── Requests.jsx
+│   │   ├── OfferForm.jsx
+│   │   ├── Offers.jsx
+│   │   ├── Orders.jsx
+│   │   ├── PaymentStatus.jsx
+│   │   ├── Profile.jsx
+│   │   ├── Sidebar.jsx
+│   │   ├── Topbar.jsx
+│   │   ├── StatusBadge.jsx
+│   │   └── StateViews.jsx
+│   ├── App.jsx
+│   ├── App.css
+│   ├── index.js
+│   └── index.css
+├── package.json
+└── .env.example
+```
 
-### `npm test`
+## 2. Install and run
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```bash
+cd frontend-farmer
+npm install
+cp .env.example .env      # adjust REACT_APP_API_URL if your backend isn't on 127.0.0.1:5000
+npm start
+```
 
-### `npm run build`
+The app runs on `http://localhost:3000` by default. Run it alongside your
+Flask backend (`http://127.0.0.1:5000`) and the school frontend.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### Docker Compose
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Add a service like this to your existing `docker-compose.yml` (adjust the
+port so it doesn't collide with the school frontend):
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```yaml
+frontend-farmer:
+  build: ./frontend-farmer
+  ports:
+    - "3001:3000"
+  environment:
+    - REACT_APP_API_URL=http://backend:5000
+  depends_on:
+    - backend
+```
 
-### `npm run eject`
+## 3. Backend endpoints this app needs
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### Already confirmed working
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+| Method | Endpoint | Used by |
+|---|---|---|
+| GET | `/requests?status=open` | Requests dashboard |
+| POST | `/requests/:request_id/offers` | Offer submission form |
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+### Required but not yet confirmed — please implement or verify
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+These are called by the app and are needed for the features described in
+the brief. If any of them don't exist yet, the corresponding screen will
+show its normal error/empty state rather than fake data — nothing is
+silently faked.
 
-## Learn More
+| Method | Endpoint | Used by | Notes |
+|---|---|---|---|
+| GET | `/requests/:id` | Request detail view | Optional — the app currently reuses data already fetched from the list, so this is a nice-to-have, not a blocker. |
+| GET | `/farmers/:farmer_id/offers` | My Offers, Dashboard KPI | Expected fields: `id, request_id, food_item, quantity, unit, price, total, status, created_at`. |
+| GET | `/farmers/:farmer_id/orders` | My Orders, Payments, Dashboard KPI | Expected fields: `id, request_id, school_name, food_item, quantity, unit, price, total_amount, status, payment_status, mpesa_receipt, created_at`. |
+| GET | `/orders/:id` | Single order detail (not currently wired into a screen, but available in `client.js` for when you add one) | |
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+There is currently no farmer authentication endpoint. `CURRENT_FARMER_ID`
+in `src/api/client.js` is hardcoded to `1` — see the `TODO(auth)` comment
+there for the one place to change when login is added.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## 4. Order and payment status values expected
 
-### Code Splitting
+The UI recognizes these values and shows an appropriate badge/step; any
+other string is still displayed, just without special styling:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+- **Offer status:** `pending`, `accepted`, `rejected`
+- **Order status:** `confirmed`, `preparing`, `out_for_delivery`, `delivered`, `cancelled`
+- **Payment status:** `unpaid`, `pending`, `paid`, `failed`
 
-### Analyzing the Bundle Size
+## 5. What's intentionally not built
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- No Supabase client code anywhere in this app — by design.
+- No M-Pesa/Safaricom API calls — the farmer app only displays whatever
+  `payment_status` and `mpesa_receipt` the backend returns.
+- No fabricated statistics — any dashboard KPI that depends on a
+  not-yet-available endpoint shows `—` instead of a made-up number.
