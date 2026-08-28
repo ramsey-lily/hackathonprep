@@ -50,41 +50,50 @@ def create_request():
 @requests_bp.route("/requests", methods=["GET"])
 def get_requests():
 
-    status = request.args.get("status")
-    location = request.args.get("location")
+    response = (
+        supabase
+        .table("food_requests")
+        .select("""
+            id,
+            food_item,
+            quantity,
+            unit,
+            budget,
+            delivery_date,
+            status,
+            selected_farmer_id,
+            schools (
+                id,
+                name,
+                location
+            )
+        """)
+        .execute()
+    )
 
-    query = supabase.table("food_requests").select("*")
+    requests_data = []
 
-    if status:
-        query = query.eq("status", status)
+    for item in response.data:
 
-    response = query.execute()
+        school = item.pop("schools", None)
 
-    requests_data = response.data
-
-    # Simple location filtering
-    # Can be improved later with database relationships
-    if location:
-        school_ids_response = (
-            supabase
-            .table("schools")
-            .select("id")
-            .eq("location", location)
-            .execute()
-        )
-
-        school_ids = [
-            school["id"]
-            for school in school_ids_response.data
-        ]
-
-        requests_data = [
-            item for item in requests_data
-            if item["school_id"] in school_ids
-        ]
+        requests_data.append({
+            "id": item["id"],
+            "school": {
+                "id": school["id"],
+                "name": school["name"],
+                "location": school["location"]
+            } if school else None,
+            "food_item": item["food_item"],
+            "quantity": item["quantity"],
+            "unit": item["unit"],
+            "budget": item["budget"],
+            "delivery_date": item["delivery_date"],
+            "status": item["status"],
+            "selected_farmer_id": item["selected_farmer_id"]
+        })
 
     return jsonify(requests_data), 200
-
 
 # Get one request
 @requests_bp.route("/requests/<int:request_id>", methods=["GET"])
@@ -93,7 +102,21 @@ def get_request(request_id):
     response = (
         supabase
         .table("food_requests")
-        .select("*")
+        .select("""
+            id,
+            food_item,
+            quantity,
+            unit,
+            budget,
+            delivery_date,
+            status,
+            selected_farmer_id,
+            schools (
+                id,
+                name,
+                location
+            )
+        """)
         .eq("id", request_id)
         .execute()
     )
@@ -103,7 +126,26 @@ def get_request(request_id):
             "error": "Food request not found"
         }), 404
 
-    return jsonify(response.data[0]), 200
+    item = response.data[0]
+    school = item.pop("schools", None)
+
+    result = {
+        "id": item["id"],
+        "school": {
+            "id": school["id"],
+            "name": school["name"],
+            "location": school["location"]
+        } if school else None,
+        "food_item": item["food_item"],
+        "quantity": item["quantity"],
+        "unit": item["unit"],
+        "budget": item["budget"],
+        "delivery_date": item["delivery_date"],
+        "status": item["status"],
+        "selected_farmer_id": item["selected_farmer_id"]
+    }
+
+    return jsonify(result), 200
 
 
 # Get all requests belonging to a school
