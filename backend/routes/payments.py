@@ -46,16 +46,67 @@ def mpesa_payment():
         amount,
         order_id
     )
+    checkout_request_id = result.get("CheckoutRequestID")
+
+    if checkout_request_id:
+        (
+        supabase
+        .table("orders")
+        .update({
+            "payment_status": "pending",
+            "checkout_request_id": checkout_request_id
+        })
+        .eq("id", order_id)
+        .execute()
+        )
+
 
     return jsonify(result), 200
-
 
 @payments.route("/payments/mpesa/callback", methods=["POST"])
 def mpesa_callback():
 
     data = request.get_json()
 
-    result = handle_mpesa_callback(data)
+    callback = data["Body"]["stkCallback"]
+
+    result_code = callback["ResultCode"]
+    checkout_request_id = callback["CheckoutRequestID"]
+
+    if result_code == 0:
+
+        metadata = callback.get("CallbackMetadata", {}).get("Item", [])
+
+        mpesa_receipt = None
+
+        for item in metadata:
+            if item.get("Name") == "MpesaReceiptNumber":
+                mpesa_receipt = item.get("Value")
+
+        response = (
+            supabase
+            .table("orders")
+            .update({
+                "payment_status": "paid",
+                "mpesa_receipt_number": mpesa_receipt
+            })
+            .eq("checkout_request_id", checkout_request_id)
+            .execute()
+        )
+
+        print("PAYMENT UPDATED:", response.data)
+
+    else:
+
+        (
+            supabase
+            .table("orders")
+            .update({
+                "payment_status": "failed"
+            })
+            .eq("checkout_request_id", checkout_request_id)
+            .execute()
+        )
 
     return jsonify({
         "ResultCode": 0,

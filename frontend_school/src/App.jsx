@@ -101,15 +101,19 @@ export default function App() {
 
           {activeView === 'offers' && (
             <OfferEvaluation
-              requests={requests}
-              selectedRequestId={selectedRequestId}
-              onOfferAccepted={loadDashboardData}
-              showToast={showToast}
+            requests={requests}
+            selectedRequestId={selectedRequestId}
+            onOfferAccepted={loadDashboardData}
+            onNavigate={setActiveView}
+            showToast={showToast}
             />
           )}
 
           {activeView === 'fulfillment' && (
-            <OrderFulfillment orders={orders} />
+            <OrderFulfillment
+            orders={orders}
+            onPaymentComplete={loadDashboardData}
+            />
           )}
         </div>
       </main>
