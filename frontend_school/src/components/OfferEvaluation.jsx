@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { apiClient } from '../api/client';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
 
-export default function OfferEvaluation({ requests, selectedRequestId, onOfferAccepted, showToast }) {
+export default function OfferEvaluation({ requests, selectedRequestId, onOfferAccepted, onNavigate, showToast }) {
   const [currentRequestId, setCurrentRequestId] = useState(selectedRequestId || '');
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -31,13 +31,23 @@ export default function OfferEvaluation({ requests, selectedRequestId, onOfferAc
 
   const handleSelectOffer = async (offerId) => {
     try {
-      await apiClient.selectOffer(offerId); // PATCH /offers/<id>/select [cite: 289, 290]
+      // 1. Tell backend to select the offer and create the order
+      await apiClient.selectOffer(offerId);
+      
       showToast('Offer selected and order confirmed!');
-      onOfferAccepted();
-      // Refresh offers
+      
+      // 2. Reload requests and orders from the database
+      await onOfferAccepted();
+      
+      // 3. Refresh the offers so the selected offer shows as accepted
       const updated = await apiClient.getRequestOffers(currentRequestId);
       setOffers(updated);
+      
+      // 4. Move automatically to Order Fulfillment
+      onNavigate('fulfillment');
+      
     } catch (err) {
+      console.error('Error selecting offer:', err);
       showToast('Failed to select offer: ' + err.message);
     }
   };
@@ -91,7 +101,9 @@ export default function OfferEvaluation({ requests, selectedRequestId, onOfferAc
               <div key={offer.id} className={`offer-card ${isSelected ? 'selected-card' : ''}`}>
                 <div className="offer-card-header">
                   <div>
-                    <span className="offer-farmer-id">Farmer #{offer.farmer_id}</span>
+                    <span className="offer-farmer-id">
+                      {offer.farmer?.name || `Farmer #${offer.farmer?.id || 'Unknown'}`}
+                      </span>
                     <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
                       Offer ID: #{offer.id}
                     </div>
