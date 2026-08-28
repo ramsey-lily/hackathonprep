@@ -155,9 +155,46 @@ def get_school_requests(school_id):
     response = (
         supabase
         .table("food_requests")
-        .select("*")
+        .select("""
+            id,
+            food_item,
+            quantity,
+            unit,
+            budget,
+            delivery_date,
+            status,
+            selected_farmer_id,
+            farmers (
+                id,
+                name,
+                phone,
+                location
+            )
+        """)
         .eq("school_id", school_id)
         .execute()
     )
 
-    return jsonify(response.data), 200
+    requests_data = []
+
+    for item in response.data:
+
+        farmer = item.pop("farmers", None)
+
+        requests_data.append({
+            "id": item["id"],
+            "food_item": item["food_item"],
+            "quantity": item["quantity"],
+            "unit": item["unit"],
+            "budget": item["budget"],
+            "delivery_date": item["delivery_date"],
+            "status": item["status"],
+            "farmer": {
+                "id": farmer["id"],
+                "name": farmer["name"],
+                "phone": farmer["phone"],
+                "location": farmer["location"]
+            } if farmer else None
+        })
+
+    return jsonify(requests_data), 200
