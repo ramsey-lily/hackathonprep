@@ -5,7 +5,7 @@ services:
         ports:
             - "5000:5000"
         env_file:
-            - ./backend/.env
+            - ./.env
 
     school-frontend:
         build: ./frontend_school
